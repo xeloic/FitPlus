@@ -129,6 +129,8 @@ function WorkoutDetails() {
 
     }
 
+    
+
 
 
     async function deleteExercise(

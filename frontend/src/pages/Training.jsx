@@ -1,26 +1,61 @@
-import {useState,useEffect,useCallback} from "react";
-import "../styles/Training.css";
-import useEmblaCarousel from "embla-carousel-react";
+
+import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import api from "../api/api";
+import "../styles/Training.css";
+import useEmblaCarousel from "embla-carousel-react";
 
-export default function Training(){
+function Training() {
 
-const [emblaRef]=useEmblaCarousel({
-align:"center",
-loop:true
+const [emblaRef] = useEmblaCarousel({
+align:"start",
+loop:false
 });
 
+
+
+
 const [plans,setPlans]=useState([]);
-const [selectedPlan,setSelectedPlan]=useState(null);
-const [exerciseData,setExerciseData]=useState([]);
-const [sessionId,setSessionId]=useState(null);
 
-const [showCreateDay,setShowCreateDay]=useState(false);
-const [newDayName,setNewDayName]=useState("");
+const [selectedPlan,setSelectedPlan]=
+useState(null);
 
-const [workoutTime,setWorkoutTime]=useState(0);
-const [timerRunning,setTimerRunning]=useState(false);
+const [exerciseData,setExerciseData]=
+useState([]);
+
+const [showCreateDay,setShowCreateDay]=
+useState(false);
+
+const [newDayName,setNewDayName]=
+useState("");
+
+const [showExerciseForm,setShowExerciseForm]=
+useState(false);
+
+const [exerciseName,setExerciseName]=
+useState("");
+
+const [muscleGroup,setMuscleGroup]=
+useState("");
+
+const [targetSets,setTargetSets]=
+useState("");
+
+const [targetReps,setTargetReps]=
+useState("");
+
+const [targetWeight,setTargetWeight]=
+useState("");
+
+const [timerRunning,setTimerRunning]=
+useState(false);
+
+const [workoutTime,setWorkoutTime]=
+useState(0);
+
+// eslint-disable-next-line no-unused-vars
+const [sessionId,setSessionId]=
+useState(null);
 
 
 
@@ -40,15 +75,13 @@ if(timerRunning){
 
 interval=setInterval(()=>{
 
-setWorkoutTime(
-prev=>prev+1
-);
+setWorkoutTime(prev=>prev+1);
 
 },1000);
 
 }
 
-return ()=>clearInterval(interval);
+return()=>clearInterval(interval);
 
 },[timerRunning]);
 
@@ -67,18 +100,6 @@ setPlans(
 response.data
 );
 
-if(response.data.length>0){
-
-setSelectedPlan(
-response.data[0]
-);
-
-loadWorkoutDetails(
-response.data[0].id
-);
-
-}
-
 }
 catch(error){
 
@@ -90,46 +111,19 @@ console.log(error);
 
 
 
-async function loadWorkoutDetails(id){
+async function loadWorkoutDetails(
+workoutId
+){
 
 try{
 
 const response=
 await api.get(
-`/workouts/${id}`
-);
-
-const formatted=
-
-response.data.map(
-e=>({
-
-exerciseId:e.exercise.id,
-
-name:e.exercise.name,
-
-sets:Array.from(
-{
-length:e.targetSets
-},
-()=>({
-
-reps:
-e.targetReps||0,
-
-weight:
-e.targetWeight||0
-
-})
-
-)
-
-})
-
+`/workouts/${workoutId}`
 );
 
 setExerciseData(
-formatted
+response.data
 );
 
 }
@@ -157,7 +151,9 @@ await api.post(
 {
 
 name:newDayName,
-dayOfWeek:plans.length+1
+
+dayOfWeek:
+plans.length+1
 
 }
 
@@ -177,6 +173,7 @@ console.log(error);
 }
 
 }
+
 
 
 async function startWorkout(){
@@ -211,134 +208,164 @@ setSessionId(
 response.data.id
 );
 
-setWorkoutTime(
-0
-);
+setWorkoutTime(0);
 
-setTimerRunning(
-true
-);
-
-}
-catch(error){
-
-console.log(
-error
-);
-
-}
-
-}
-
-const ensureSession=
-useCallback(
-
-async()=>{
-
-if(sessionId)
-return sessionId;
-
-if(!selectedPlan)
-return null;
-
-try{
-
-const response=
-await api.post(
-
-"/sessions/start",
-
-{
-
-workoutPlanId:
-selectedPlan.id
-
-}
-
-);
-
-setSessionId(
-response.data.id
-);
-
-return response.data.id;
+setTimerRunning(true);
 
 }
 catch(error){
 
 console.log(error);
 
-return null;
+}
 
 }
 
-},
-
-[
-sessionId,
-selectedPlan
-]
-
-);
 
 
+async function addExercise(){
 
-async function finishWorkout(){
-
-const id=
-await ensureSession();
-
-if(!id)
+if(!selectedPlan)
 return;
 
 try{
 
-for(let i=0;i<exerciseData.length;i++){
-
-const exercise=
-exerciseData[i];
-
-for(
-let j=0;
-j<exercise.sets.length;
-j++
-){
-
-const set=
-exercise.sets[j];
-
+const exerciseResponse=
 await api.post(
 
-`/sessions/${id}/set`,
+"/exercises/create",
 
 {
 
-exerciseId:
-exercise.exerciseId,
-
-setNumber:
-j+1,
-
-reps:
-set.reps,
-
-weight:
-set.weight
+name:exerciseName,
+muscleGroup
 
 }
 
 );
 
+const exerciseId=
+exerciseResponse.data.id;
+
+await api.post(
+
+`/workouts/${selectedPlan.id}/exercise`,
+
+{
+
+exerciseId,
+
+exerciseOrder:
+exerciseData.length+1,
+
+targetSets:
+Number(targetSets),
+
+targetReps:
+Number(targetReps),
+
+targetWeight:
+Number(targetWeight)
+
+}
+
+);
+
+await loadWorkoutDetails(
+selectedPlan.id
+);
+
+setExerciseName("");
+setMuscleGroup("");
+setTargetSets("");
+setTargetReps("");
+setTargetWeight("");
+
+setShowExerciseForm(false);
+
+}
+catch(error){
+
+console.log(error);
+
 }
 
 }
+
+
+
+async function deleteExercise(
+exerciseId
+){
+
+try{
+
+await api.delete(
+
+`/workouts/exercise/${exerciseId}`
+
+);
+
+await loadWorkoutDetails(
+selectedPlan.id
+);
+
+}
+catch(error){
+
+console.log(error);
+
+}
+
+}
+
+async function deleteWorkoutDay(){
+
+if(!selectedPlan)
+return;
+
+const confirmDelete = window.confirm(
+"Delete this workout day?"
+);
+
+if(!confirmDelete)
+return;
+
+try{
+
+await api.delete(
+
+`/workouts/${selectedPlan.id}`
+
+);
+
+setSelectedPlan(null);
+
+setExerciseData([]);
+
+fetchPlans();
+
+}
+catch(error){
+
+console.log(error);
+
+}
+
+}
+
+async function finishWorkout(){
+
+try{
 
 setTimerRunning(false);
 
 setSessionId(null);
 
+setWorkoutTime(0);
+
 alert(
-"Workout Saved"
+"Workout Finished"
 );
 
 }
@@ -352,59 +379,25 @@ console.log(error);
 
 
 
-function addSet(index){
+const formattedTime=
 
-const updated=
-[...exerciseData];
-
-updated[index]
-.sets.push({
-
-reps:0,
-weight:0
-
-});
-
-setExerciseData(
-updated
-);
-
-}
-
-
-
-function updateSet(
-exerciseIndex,
-setIndex,
-field,
-value
-){
-
-const updated=
-[...exerciseData];
-
-updated[
-exerciseIndex
-]
-.sets[
-setIndex
-][field]=
-Number(value);
-
-setExerciseData(
-updated
-);
-
-}
+`${String(
+Math.floor(workoutTime/60)
+).padStart(2,"0")}:${String(
+workoutTime%60
+).padStart(2,"0")}`;
 
 
 
 const totalSets=
-
 exerciseData.reduce(
-(sum,e)=>
-sum+e.sets.length,
+
+(sum,item)=>
+
+sum + item.targetSets,
+
 0
+
 );
 
 
@@ -424,6 +417,7 @@ return(
 <div className="top-section">
 
 
+
 <div className="split-card glass">
 
 <h2>
@@ -432,10 +426,11 @@ Workout Split
 
 </h2>
 
+
 <select
 
 value={
-selectedPlan?.id||""
+selectedPlan?.id || ""
 }
 
 onChange={(e)=>{
@@ -443,10 +438,13 @@ onChange={(e)=>{
 const selected=
 
 plans.find(
+
 p=>
+
 p.id===Number(
 e.target.value
 )
+
 );
 
 setSelectedPlan(
@@ -462,13 +460,14 @@ selected.id
 >
 
 <option value="">
+
 Select Day
+
 </option>
 
 {
 
-plans.map(
-plan=>(
+plans.map(plan=>(
 
 <option
 key={plan.id}
@@ -484,6 +483,7 @@ value={plan.id}
 }
 
 </select>
+
 
 
 <button
@@ -502,18 +502,16 @@ setShowCreateDay(
 
 </button>
 
+
+
 <button
 onClick={startWorkout}
-
-style={{
-marginTop:"10px"
-}}
-
 >
 
 Start Workout
 
 </button>
+
 
 
 {
@@ -564,81 +562,53 @@ Save
 <h1>
 
 {
-
-selectedPlan?.name
-||
+selectedPlan?.name ||
 "Workout"
-
 }
 
 </h1>
 
+<button
+
+className="delete-day-btn"
+
+onClick={deleteWorkoutDay}
+
+>
+
+Delete Day
+
+</button>
+
 <p>
 
 Total Time:
-
-{Math.floor(
-workoutTime/60
-)
-
-.toString()
-
-.padStart(2,"0")}
-
-:
-
-{(
-workoutTime%60
-)
-
-.toString()
-
-.padStart(2,"0")}
+{formattedTime}
 
 </p>
 
 <p>
 
 Sets:
-{
-totalSets
-}
+{totalSets}
 
 </p>
 
 </div>
 
 
+
 <div className="rest">
 
-<h3>
+<h3 className="timer-title">
 
 Workout Timer
 
 </h3>
 
-<div
-className=
-"timer-circle"
->
+<div className="timer-circle">
 
-{Math.floor(
-workoutTime/60
-)
-
-.toString()
-
-.padStart(2,"0")}
-
-:
-
-{(
-workoutTime%60
-)
-
-.toString()
-
-.padStart(2,"0")}
+{formattedTime}
 
 </div>
 
@@ -652,159 +622,269 @@ workoutTime%60
 
 
 <div
-className=
-"carousel-container"
+className="carousel-container"
 ref={emblaRef}
 >
 
-<div
-className=
-"embla__container"
->
+<div className="embla__container">
 
 {
 
-exerciseData.map(
-(
-exercise,
-index
-)=>(
+exerciseData.map(item=>(
 
 <div
-className=
-"exercise-card glass"
-key={index}
+className="exercise-card glass"
+key={item.id}
 >
+
+<div className="card-header">
 
 <h2>
 
 {
-exercise.name
+item.exercise?.name
 }
 
 </h2>
 
+<button
 
-<div
-className=
-"table-head"
+className="delete-btn"
+
+onClick={()=>{
+
+deleteExercise(item.id);
+
+}}
+
 >
 
-<span>
-Set
-</span>
+×
 
-<span>
-Reps
-</span>
-
-<span>
-Weight
-</span>
+</button>
 
 </div>
 
 
+
+<div className="exercise-fields">
+
+<div className="field-row">
+
+<label>
+
+Sets
+
+</label>
+
+<input
+type="number"
+value={item.targetSets}
+/>
+
+</div>
+
+
+
+<div className="field-row">
+
+<label>
+
+Reps
+
+</label>
+
+<input
+type="number"
+value={item.targetReps}
+/>
+
+</div>
+
+
+
+<div className="field-row">
+
+<label>
+
+Weight
+
+</label>
+
+<input
+type="number"
+value={item.targetWeight}
+/>
+
+</div>
+
+</div>
+
+</div>
+
+))
+
+}
+
+
+
+<div className="exercise-card glass">
 
 {
 
-exercise.sets.map(
-(
-set,
-i
-)=>(
+!showExerciseForm ?
 
 <div
-className=
-"set-row"
-key={i}
+
+className="add-content"
+
+onClick={()=>{
+
+setShowExerciseForm(true);
+
+}}
+
 >
 
-<span>
+<p>
 
-{i+1}
+Add Exercise
 
-</span>
+</p>
 
+<div className="plus-circle">
 
-<input
-
-type="number"
-
-value={
-set.reps
-}
-
-onChange={(e)=>
-
-updateSet(
-index,
-i,
-"reps",
-e.target.value
-)
-
-}
-
-/>
-
-
-<input
-
-type="number"
-
-value={
-set.weight
-}
-
-onChange={(e)=>
-
-updateSet(
-index,
-i,
-"weight",
-e.target.value
-)
-
-}
-
-/>
++
 
 </div>
 
-)
+</div>
 
-)
+:
 
-}
+<>
 
+<div className="card-header">
+
+<input
+
+className="exercise-name-input"
+
+placeholder="Exercise Name"
+
+value={exerciseName}
+
+onChange={(e)=>{
+
+setExerciseName(
+e.target.value
+);
+
+}}
+
+/>
 
 <button
 
-className=
-"add-set"
+className="delete-btn"
 
-onClick={()=>
+onClick={()=>{
 
-addSet(
-index
-)
+setShowExerciseForm(false);
 
-}
+}}
 
 >
 
-+ Add Set
+×
 
 </button>
 
 </div>
 
-)
 
-)
 
-}
+<div className="exercise-fields">
+
+<div className="field-row">
+
+<label>
+
+Sets
+
+</label>
+
+<input
+
+type="number"
+
+value={targetSets}
+
+onChange={(e)=>{
+
+setTargetSets(
+e.target.value
+);
+
+}}
+
+/>
+
+</div>
+
+
+
+<div className="field-row">
+
+<label>
+
+Weight
+
+</label>
+
+<input
+
+type="number"
+
+value={targetWeight}
+
+onChange={(e)=>{
+
+setTargetWeight(
+e.target.value
+);
+
+}}
+
+/>
+
+</div>
+
+
+
+<div className="field-row">
+
+<label>
+
+Reps
+
+</label>
+
+<input
+
+type="number"
+
+value={targetReps}
+
+onChange={(e)=>{
+
+setTargetReps(
+e.target.value
+);
+
+}}
+
+/>
 
 </div>
 
@@ -813,23 +893,36 @@ index
 
 
 <button
-className=
-"add-exercise"
+
+className="save-exercise-btn"
+
+onClick={addExercise}
+
 >
 
-+ Add Exercise
+Finish
 
 </button>
 
+</>
 
-<button
-className=
-"finish"
-
-onClick={
-finishWorkout
 }
 
+</div>
+
+</div>
+
+</div>
+
+
+
+
+
+
+
+<button
+className="finish"
+onClick={finishWorkout}
 >
 
 Finish Workout
@@ -841,3 +934,6 @@ Finish Workout
 );
 
 }
+
+export default Training;
+
