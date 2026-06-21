@@ -30,6 +30,14 @@ public interface SetLogRepository
             Long userId
     );
 
+
+    @Query("""
+    SELECT SUM(s.weight * s.reps)
+    FROM SetLog s
+    WHERE s.workoutSession.id = :sessionId
+    """)
+    Double totalVolume(Long sessionId);
+
     @Query("""
     SELECT SUM(s.weight * s.reps)
     FROM SetLog s
@@ -40,6 +48,13 @@ public interface SetLogRepository
             Long exerciseId,
             Long userId
     );
+
+    @Query("""
+    SELECT COUNT(s)
+    FROM SetLog s
+    WHERE s.workoutSession.id = :sessionId
+    """)
+    Long countSets(Long sessionId);
 
     @Query("""
     SELECT new com.prakhar_project.fitplus.dto.ProgressResponse(

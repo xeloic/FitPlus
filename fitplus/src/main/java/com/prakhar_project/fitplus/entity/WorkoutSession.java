@@ -20,7 +20,11 @@ public class WorkoutSession {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private LocalDateTime startedAt;
+
     private LocalDateTime completedAt;
+
+    private Integer durationMinutes;
 
     @ManyToOne
     @JoinColumn(name = "user_id")

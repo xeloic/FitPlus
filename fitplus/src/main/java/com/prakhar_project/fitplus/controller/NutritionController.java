@@ -27,6 +27,17 @@ public class NutritionController {
                 .orElseThrow(() ->
                         new RuntimeException("User not found"));
 
+        if(
+                user.getWeight() == null ||
+                        user.getHeight() == null ||
+                        user.getAge() == null ||
+                        user.getActivityLevel() == null
+        ){
+            throw new RuntimeException(
+                    "Complete profile first"
+            );
+        }
+
         double weight = user.getWeight();
         double height = user.getHeight();
         int age = user.getAge();
